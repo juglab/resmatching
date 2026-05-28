@@ -20,23 +20,23 @@ BASE_URL = "https://download.fht.org/jug/resmatching/data/"
 DATASETS = {
     "ccp": (
         "ccp.zip",
-        "56c486df8673591b8e64c4fccdf11b02549d18ce592b0d0d23a148ddffce1d9a",
+        "13eff82a3cdd155b4c3b553e067c2d58bc2d8218918532efe88c14ae5d4dbb56",
     ),
     "er": (
         "er.zip",
-        "6f3cb5aebc38c9a1400867dc814ce4cb9c50ae93f6acb1e184537a531edbb715",
+        "959a930728b131d1783ba60b39a7ed71b1d2cfc873bdaa911a0466e11f985d9d",
     ),
     "factin": (
         "factin.zip",
-        "28a9d6351dd9d5681212141954a302397986b50a652ae05bcc538393c0fa5c10",
+        "4401482869d4f6af741c1880e8b9c63d7182172cf0b0cae5ff0f882f01bdf641",
     ),
     "mt": (
         "mt.zip",
-        "8bc6fe5c1810add25fa1adab2776e613c0bbc223b1686790fb36f947b4d98eaf",
+        "b164261bd2b737cb7f1b72d585c20ade56d8e18ffc8bbb8df5bb0753b8f72d4a",
     ),
     "mt_noisy": (
         "mt_noisy.zip",
-        "323fca416ab08edeacd2dc14d3c486065e43f7a400e0ed604a0cb4feb4efe04d",
+        "1006261fded568f683a1f4da2639ab8e6a630e164234575b7dfa472aafaf9222",
     ),
 }
 

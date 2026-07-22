@@ -161,7 +161,7 @@ After downloading, extract the files and place them in the appropriate dataset a
 The downloaded best-model checkpoints may include the dataset name as a prefix. For example:
 
 ```text
-neuron_best_model.pth
+ccp_best_model.pth
 ```
 
 Before placing a checkpoint in its corresponding model directory, remove the dataset-name prefix so that the file is named:
@@ -173,7 +173,7 @@ best_model.pth
 For example:
 
 ```text
-neuron_best_model.pth  →  best_model.pth
+ccp_best_model.pth  →  best_model.pth
 ```
 
 Place each renamed checkpoint inside the directory corresponding to that dataset. Do not place all renamed `best_model.pth` files in the same directory, as they would overwrite one another.

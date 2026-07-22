@@ -148,6 +148,38 @@ If you find this work useful in your research, please consider citing:
 }
 ```
 
+## ⚠️ Manual Download of Datasets and Pre-trained Models
+
+If downloading the datasets or pretrained models using the provided script results in an error, you can download them manually from the following link:
+
+**Datasets and pretrained models:** [Zenodo download link](https://zenodo.org/records/21492759)
+
+After downloading, extract the files and place them in the appropriate dataset and model directories used by ResMatching.
+
+### Model file names
+
+The downloaded best-model checkpoints may include the dataset name as a prefix. For example:
+
+```text
+neuron_best_model.pth
+```
+
+Before placing a checkpoint in its corresponding model directory, remove the dataset-name prefix so that the file is named:
+
+```text
+best_model.pth
+```
+
+For example:
+
+```text
+neuron_best_model.pth  →  best_model.pth
+```
+
+Place each renamed checkpoint inside the directory corresponding to that dataset. Do not place all renamed `best_model.pth` files in the same directory, as they would overwrite one another.
+
+Similarly, place each manually downloaded dataset in the appropriate dataset directory expected by the project.
+
 ## License
 
 MIT

@@ -183,8 +183,8 @@ If you find this work useful in your research, please consider citing:
 @article{resmatching2025,
   title={ResMatching: Noise-Resilient Computational Super-Resolution via Guided Conditional Flow Matching},
   author={Anirban Ray and Vera Galinova and Florian Jug},
-  journal={arXiv preprint arXiv:2510.26601},
-  year={2025}
+  journal={2026 IEEE 23rd International Symposium on Biomedical Imaging (ISBI)},
+  year={2026}
 }
 ```
 

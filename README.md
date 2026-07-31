@@ -43,7 +43,7 @@ Experiments use the [BioSR](https://figshare.com/articles/dataset/BioSR/13264793
 
 There are two workflows depending on whether you want to train from scratch or use pre-trained checkpoints.
 
-> Metrics are reproducible from provided checkpoints. Full retraining may produce slight variance due to non-deterministic operations.
+> By default, `scripts/metrics.py` evaluates the current local inference outputs in `data/<subset>/<split>_results/`. Use `--paper-results` to download and evaluate the exact saved prediction stacks used for the paper metrics from Zenodo. Full retraining may produce slight variance due to non-deterministic operations.
 
 ---
 
@@ -80,10 +80,14 @@ Writes multi-sample TIFFs to `data/ccp/test_results/` and `data/ccp/val_results/
 **Step 4. Compute metrics**
 
 ```bash
+# Evaluate the current local inference outputs
 uv run python scripts/metrics.py ccp
+
+# Or evaluate the exact paper result stacks from Zenodo
+uv run python scripts/metrics.py ccp --paper-results
 ```
 
-Reads from `data/ccp/test_results/` and prints PSNR, MicroMS3IM, LPIPS, FID, FSIM, and GMSD.
+The default command reads from `data/ccp/test_results/`. With `--paper-results`, the script downloads the archive to `data/ccp/paper_result_samples/`, reads `test_result_samples/`, and prints PSNR, MicroMS3IM, LPIPS, FID, FSIM, and GMSD. Add `--split val` to evaluate the validation stacks. The Zenodo archive for `mt_noisy` is named `mtNoisy`, which the script handles automatically.
 
 **Step 5. (Optional) Calibration**
 
@@ -124,7 +128,11 @@ uv run python scripts/infer.py ccp --checkpoint checkpoints/ccp/best_model.pth
 **Step 4. Compute metrics**
 
 ```bash
+# Evaluate the current local inference outputs
 uv run python scripts/metrics.py ccp
+
+# Or evaluate the exact paper result stacks from Zenodo
+uv run python scripts/metrics.py ccp --paper-results
 ```
 
 **Step 5. (Optional) Calibration**
@@ -133,26 +141,11 @@ uv run python scripts/metrics.py ccp
 uv run python scripts/calibrate.py ccp --results-dir data/ccp
 ```
 
----
-
-## Citation
-
-If you find this work useful in your research, please consider citing:
-
-```bibtex
-@article{resmatching2025,
-  title={ResMatching: Noise-Resilient Computational Super-Resolution via Guided Conditional Flow Matching},
-  author={Anirban Ray and Vera Galinova and Florian Jug},
-  journal={arXiv preprint arXiv:2510.26601},
-  year={2025}
-}
-```
-
 ## ⚠️ Manual Download of Datasets and Pre-trained Models
 
 If downloading the datasets or pretrained models using the provided script results in an error, you can download them manually from the following link:
 
-**Datasets and pretrained models:** [Zenodo download link](https://zenodo.org/records/21492759)
+**Datasets and pretrained models:** [Zenodo download link](https://zenodo.org/records/21721986)
 
 After downloading, extract the files and place them in the appropriate dataset and model directories used by ResMatching.
 
@@ -179,6 +172,21 @@ ccp_best_model.pth  →  best_model.pth
 Place each renamed checkpoint inside the directory corresponding to that dataset. Do not place all renamed `best_model.pth` files in the same directory, as they would overwrite one another.
 
 Similarly, place each manually downloaded dataset in the appropriate dataset directory expected by the project.
+
+---
+
+## Citation
+
+If you find this work useful in your research, please consider citing:
+
+```bibtex
+@article{resmatching2025,
+  title={ResMatching: Noise-Resilient Computational Super-Resolution via Guided Conditional Flow Matching},
+  author={Anirban Ray and Vera Galinova and Florian Jug},
+  journal={arXiv preprint arXiv:2510.26601},
+  year={2025}
+}
+```
 
 ## License
 

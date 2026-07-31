@@ -1,9 +1,11 @@
 import os
+import zipfile
 import warnings
 from pathlib import Path
 from typing import Annotated, Optional
 
 import numpy as np
+import pooch
 import torch
 from microssim import MicroMS3IM
 from tifffile import imread, TiffFile
@@ -24,8 +26,96 @@ from resmatching.utils import (
 warnings.filterwarnings("ignore")
 
 SUBSETS = ["ccp", "er", "factin", "mt", "mt_noisy"]
+SPLITS = ["test", "val"]
+PAPER_RESULTS_URL = (
+    "https://zenodo.org/records/21721986/files/"
+    "{zenodo_subset}_test_val_result_samples.zip?download=1"
+)
+PAPER_RESULTS_SUBSET_NAMES = {"mt_noisy": "mtNoisy"}
 
 app = typer.Typer()
+
+
+def _has_tifs(path: Path) -> bool:
+    return path.is_dir() and any(path.glob("*.tif"))
+
+
+def _safe_extract(zip_file: zipfile.ZipFile, output_dir: Path) -> None:
+    output_root = output_dir.resolve()
+    for member in zip_file.infolist():
+        target = (output_dir / member.filename).resolve()
+        if output_root != target and output_root not in target.parents:
+            raise ValueError(f"Unsafe zip member path: {member.filename}")
+    zip_file.extractall(output_dir)
+
+
+def _download_paper_result_samples(
+    subset: str,
+    data_dir: Path,
+    paper_results_dir: Optional[Path],
+) -> Path:
+    output_dir = paper_results_dir or data_dir / subset / "paper_result_samples"
+    test_dir = output_dir / "test_result_samples"
+    val_dir = output_dir / "val_result_samples"
+
+    if _has_tifs(test_dir) and _has_tifs(val_dir):
+        typer.echo(f"Using cached paper result samples: {output_dir}")
+        return output_dir
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    zenodo_subset = PAPER_RESULTS_SUBSET_NAMES.get(subset, subset)
+    filename = f"{zenodo_subset}_test_val_result_samples.zip"
+    typer.echo(f"Downloading paper result samples from Zenodo ({filename})...")
+    archive_path = pooch.retrieve(
+        url=PAPER_RESULTS_URL.format(zenodo_subset=zenodo_subset),
+        known_hash=None,
+        fname=filename,
+        path=output_dir,
+        progressbar=True,
+    )
+
+    typer.echo(f"Extracting paper result samples to {output_dir}...")
+    with zipfile.ZipFile(archive_path, "r") as zip_file:
+        _safe_extract(zip_file, output_dir)
+
+    missing = [
+        folder.name
+        for folder in (test_dir, val_dir)
+        if not _has_tifs(folder)
+    ]
+    if missing:
+        typer.echo(
+            f"Error: downloaded archive did not create expected folder(s): {missing}",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+    return output_dir
+
+
+def _prediction_samples_from_stack(
+    stack: np.ndarray, n_samples: int, image_path: Path
+) -> np.ndarray:
+    if stack.ndim < 3:
+        raise ValueError(f"{image_path} must contain sample stacks, got {stack.shape}.")
+    if stack.shape[0] < n_samples:
+        raise ValueError(
+            f"{image_path} contains {stack.shape[0]} samples, "
+            f"but n_samples={n_samples} was requested."
+        )
+
+    samples = stack[:n_samples]
+    while samples.ndim > 3:
+        if samples.shape[1] == 1:
+            samples = np.squeeze(samples, axis=1)
+        else:
+            samples = samples[:, -1]
+
+    if samples.ndim != 3:
+        raise ValueError(
+            f"{image_path} must reduce to (samples, H, W), got {samples.shape}."
+        )
+    return samples.astype("float32", copy=False)
 
 
 @app.command()
@@ -34,7 +124,7 @@ def compute_metrics(
     results_dir: Annotated[
         Optional[Path],
         typer.Option(
-            help="Directory containing inference .tif results. Defaults to <data_dir>/<subset>/test_results/."
+            help="Directory containing inference .tif results. Defaults to <data_dir>/<subset>/<split>_results/."
         ),
     ] = None,
     fid_dir: Annotated[
@@ -46,19 +136,67 @@ def compute_metrics(
     data_dir: Annotated[
         Path, typer.Option(help="Root data directory (used to resolve defaults).")
     ] = Path("data"),
+    split: Annotated[
+        str, typer.Option(help=f"Dataset split to evaluate. One of: {SPLITS}.")
+    ] = "test",
     n_samples: Annotated[
         int, typer.Option(help="Number of samples to average for MMSE prediction.")
     ] = 50,
+    paper_results: Annotated[
+        bool,
+        typer.Option(
+            "--paper-results",
+            help=(
+                "Download/use the exact Zenodo result sample stacks used for the "
+                "paper metrics."
+            ),
+        ),
+    ] = False,
+    paper_results_dir: Annotated[
+        Optional[Path],
+        typer.Option(
+            help=(
+                "Where Zenodo paper result samples are stored. Defaults to "
+                "<data_dir>/<subset>/paper_result_samples/."
+            )
+        ),
+    ] = None,
 ):
     if subset not in SUBSETS:
         typer.echo(f"Error: subset must be one of {SUBSETS}", err=True)
         raise typer.Exit(1)
+    if split not in SPLITS:
+        typer.echo(f"Error: split must be one of {SPLITS}", err=True)
+        raise typer.Exit(1)
+    if n_samples < 1:
+        typer.echo("Error: n_samples must be at least 1", err=True)
+        raise typer.Exit(1)
+    if paper_results_dir is not None and not paper_results:
+        typer.echo("Error: --paper-results-dir requires --paper-results", err=True)
+        raise typer.Exit(1)
 
     subset_dir = data_dir / subset
-    if results_dir is None:
-        results_dir = subset_dir / "test_results"
+    if paper_results:
+        paper_root = _download_paper_result_samples(
+            subset=subset,
+            data_dir=data_dir,
+            paper_results_dir=paper_results_dir,
+        )
+        results_dir = paper_root / f"{split}_result_samples"
+    elif results_dir is None:
+        results_dir = subset_dir / f"{split}_results"
     if fid_dir is None:
         fid_dir = subset_dir / "train_crops_fid_filtered"
+    gt_dir = subset_dir / split
+
+    for label, path in (
+        ("results", results_dir),
+        ("FID reference crops", fid_dir),
+        ("ground truth", gt_dir),
+    ):
+        if not path.is_dir():
+            typer.echo(f"Error: {label} directory not found: {path}", err=True)
+            raise typer.Exit(1)
 
     micros_ms3im = MicroMS3IM()
 
@@ -68,11 +206,17 @@ def compute_metrics(
     for fid_file in tqdm(fid_files, desc="Loading FID crops", leave=False):
         with TiffFile(fid_dir / fid_file) as tif:
             fid_crops.append(tif.asarray())
+    if not fid_crops:
+        typer.echo(f"Error: no .tif files found in {fid_dir}", err=True)
+        raise typer.Exit(1)
     fid_crops = np.concatenate(fid_crops, axis=0)
     fid_crops_gts = torch.from_numpy(fid_crops).unsqueeze(1)
     typer.echo(f"Using {fid_crops.shape[0]} crops for FID.")
 
     image_files = sorted(f for f in os.listdir(results_dir) if f.endswith(".tif"))
+    if not image_files:
+        typer.echo(f"Error: no .tif files found in {results_dir}", err=True)
+        raise typer.Exit(1)
 
     psnr_values, ms_ssim_scores, micro3_ssim_scores = [], [], []
     gts, outputs, gts_full, outputs_full = [], [], [], []
@@ -82,13 +226,21 @@ def compute_metrics(
         f"Computing metrics over {len(image_files)} images (MMSE n={n_samples})..."
     )
 
-    gt_dir = subset_dir / "test"
-
     for image_file in tqdm(image_files, desc="Images", leave=False):
         with TiffFile(results_dir / image_file) as tif:
             image = tif.asarray()
 
-        image_pred = image[:n_samples, -1]  # (n_samples, H, W)
+        try:
+            image_pred = _prediction_samples_from_stack(
+                image, n_samples=n_samples, image_path=results_dir / image_file
+            )
+        except ValueError as exc:
+            typer.echo(f"Error: {exc}", err=True)
+            raise typer.Exit(1) from exc
+        gt_path = gt_dir / image_file
+        if not gt_path.is_file():
+            typer.echo(f"Error: ground-truth file not found: {gt_path}", err=True)
+            raise typer.Exit(1)
         image_gt = imread(gt_dir / image_file).astype("float32")[0:1]  # (1, H, W)
         mmse_pred = np.mean(image_pred, axis=0, keepdims=True)
 
@@ -172,7 +324,8 @@ def compute_metrics(
     std_micro3_ssim = np.std(micro3_ssim_scores)
 
     # ── Print ────────────────────────────────────────────────────────────────
-    typer.echo(f"\n=== {subset.upper()} (n={n_samples}) ===")
+    source = "paper results" if paper_results else "current results"
+    typer.echo(f"\n=== {subset.upper()} {split} ({source}, n={n_samples}) ===")
     typer.echo(f"PSNR:         {average_psnr.item():.4f} ± {std_psnr.item():.4f}")
     typer.echo(f"MicroMS3IM:   {average_micro3_ssim:.4f} ± {std_micro3_ssim:.4f}")
     typer.echo(f"LPIPS (MMSE): {lpips_score:.4f}")

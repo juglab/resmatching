@@ -87,7 +87,7 @@ uv run python scripts/metrics.py ccp
 uv run python scripts/metrics.py ccp --paper-results
 ```
 
-The default command reads from `data/ccp/test_results/`. With `--paper-results`, the script downloads the archive to `data/ccp/paper_result_samples/`, reads `test_result_samples/`, and prints PSNR, MicroMS3IM, LPIPS, FID, FSIM, and GMSD. Add `--split val` to evaluate the validation stacks. The Zenodo archive for `mt_noisy` is named `mtNoisy`, which the script handles automatically.
+The default command reads from `data/ccp/test_results/`. With `--paper-results`, the script downloads the archive to `data/ccp/paper_result_samples/`, reads `test_result_samples/`, and prints PSNR, MicroMS3IM, LPIPS, and FID. Add `--split val` to evaluate the validation stacks. The Zenodo archive for `mt_noisy` is named `mtNoisy`, which the script handles automatically.
 
 **Step 5. (Optional) Calibration**
 

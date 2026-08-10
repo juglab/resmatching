@@ -145,7 +145,7 @@ uv run python scripts/calibrate.py ccp --results-dir data/ccp
 
 If downloading the datasets or pretrained models using the provided script results in an error, you can download them manually from the following link:
 
-**Datasets and pretrained models:** [Zenodo download link](https://zenodo.org/records/21721986)
+**Datasets and pretrained models:** [Zenodo download link](https://zenodo.org/records/21876266)
 
 After downloading, extract the files and place them in the appropriate dataset and model directories used by ResMatching.
 

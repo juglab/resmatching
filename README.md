@@ -180,7 +180,7 @@ Similarly, place each manually downloaded dataset in the appropriate dataset dir
 If you find this work useful in your research, please consider citing:
 
 ```bibtex
-@article{resmatching2025,
+@article{resmatching2026,
   title={ResMatching: Noise-Resilient Computational Super-Resolution via Guided Conditional Flow Matching},
   author={Anirban Ray and Vera Galinova and Florian Jug},
   journal={2026 IEEE 23rd International Symposium on Biomedical Imaging (ISBI)},
